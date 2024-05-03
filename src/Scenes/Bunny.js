@@ -106,6 +106,8 @@ class Bunny extends Phaser.Scene {
     }
 
     collides(a, b) {
+        // Function taken from L14: Collision detection / handling // animations
+        // by Professor Jim Whitehead ejw@ucsc.edu
         if (Math.abs(a.x - b.x) > (a.displayWidth/2 + b.displayWidth/2)) return false;
         if (Math.abs(a.y - b.y) > (a.displayHeight/2 + b.displayHeight/2)) return false;
         return true;
