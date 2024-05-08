@@ -12,7 +12,7 @@ class Bunny extends Phaser.Scene {
         this.my.sprite.carrot = [];
         this.maxCarrot = 5;
         this.my.sprite.robotCarrot = [];
-        this.maxCarrot = 8;
+        this.maxRobotCarrot = 5;
         this.timer = 0;
         this.shootTimer = 0;
         this.myScore = 0;
@@ -20,6 +20,7 @@ class Bunny extends Phaser.Scene {
         this.my.sprite.propeller = [];
         this.direction = -1;
         this.propellerSpeed = 5;
+        this.damageTimer = 120;
     }
 
     // Use preload to load art and sound assets before the scene starts running.
@@ -144,17 +145,7 @@ class Bunny extends Phaser.Scene {
         if (!this.gameOver) {
             this.timer++;
             this.shootTimer++;
-            
-            for (let propel of my.sprite.propeller) {
-                // Move propeller enemies around the map, space invaders style
-                if (propel.x != -100 && this.timer % 20 == 0) {
-                    propel.x += (this.direction * this.propellerSpeed);
-                    if (propel.y >= game.config.height - (propel.displayHeight / 2) - (my.sprite.ground.displayHeight / 2)) {
-                        this.gameOver = true;
-                    }
-                }
-            }
-
+            this.damageTimer++;
             for (let propel of my.sprite.propeller) {
                 if (propel.visible && (propel.x < 100 || propel.x > game.config.width - 100)) {
                     this.changeDirection();
@@ -236,13 +227,27 @@ class Bunny extends Phaser.Scene {
                 }
             }
 
+            let rand = 0;
             for (let propel of my.sprite.propeller){
-                if (Math.ceil(Math.random() * 750) == 1 && propel.visible) {
-                    my.sprite.robotCarrot.push(this.add.sprite(
-                        propel.x, propel.y + (propel.displayHeight / 2), "roboCarrot"
-                    ).setScale(0.20));
+                if (my.sprite.propeller.length > 18) {
+                    rand = 750;
                 }
+                else if (my.sprite.propeller.length > 9) {
+                    rand = 500;
+                }
+                else if (my.sprite.propeller.length > 1) {
+                    rand = 250;
+                }
+                else {
+                    rand = 125;
+                }
+                if (my.sprite.robotCarrot.length < this.maxRobotCarrot && Math.ceil(Math.random() * rand) == 1 && propel.visible) {
+                        my.sprite.robotCarrot.push(this.add.sprite(
+                            propel.x, propel.y + (propel.displayHeight / 2), "roboCarrot"
+                        ).setScale(0.20));
+                    }
             }
+            my.sprite.propeller = my.sprite.propeller.filter((propel) => propel.x > 0);
 
             for (let robo of my.sprite.robotCarrot) { 
                 robo.y += this.roboCarrotSpeed;
@@ -253,7 +258,7 @@ class Bunny extends Phaser.Scene {
             }
 
             my.sprite.carrot = my.sprite.carrot.filter((carrot) => carrot.y > -(carrot.displayHeight/2));
-            for (let carrot of my.sprite.carrot){
+            for (let carrot of my.sprite.carrot) {
                 for (let propel of my.sprite.propeller){
                     if (this.collides(propel, carrot)) {
                         carrot.y = -100;
@@ -261,7 +266,7 @@ class Bunny extends Phaser.Scene {
                         this.updateScore();
                         propel.setVisible(false);
                         propel.x = -100;
-                        this.propellerSpeed += 1.5; // May need to adjust?
+                        this.propellerSpeed += 2; // May need to adjust?
                         // TODO INSERT AUDIO
                     }
                 }
@@ -272,6 +277,36 @@ class Bunny extends Phaser.Scene {
                     my.sprite.flyGuy.setVisible(false);
                     my.sprite.flyGuy.x = -100;
                     // TODO INSERT AUDIO
+                }
+            }
+
+            // Cleanup shot roboCarrots
+            my.sprite.robotCarrot = my.sprite.robotCarrot.filter((robotCarrot) => robotCarrot.y < (game.config.height - (my.sprite.ground.displayHeight / 2)));
+            for (let robo of my.sprite.robotCarrot) {
+                if (this.collides(my.sprite.bunny, robo)) {
+                    robo.y = game.config.height + 100;
+                    if (my.sprite.life3.visible) {
+                        my.sprite.life3.setVisible(false);
+                        this.damageTimer = 0;
+                    }
+                    else if (my.sprite.life2.visible && this.damageTimer > 120) {
+                        my.sprite.life2.setVisible(false);
+                        this.damageTimer = 0;
+                    }
+                    else if (my.sprite.life1.visible && this.damageTimer > 120) {
+                        my.sprite.life1.setVisible(false);
+                        this.gameOver = true;
+                    }
+                }
+            }
+
+            for (let propel of my.sprite.propeller) {
+                // Move propeller enemies around the map, space invaders style
+                if (propel.x != -100 && this.timer % 20 == 0) {
+                    propel.x += (this.direction * this.propellerSpeed);
+                    if (propel.visible && propel.y >= game.config.height - (propel.displayHeight / 2) - (my.sprite.ground.displayHeight / 2) - 10) {
+                        this.gameOver = true;
+                    }
                 }
             }
         }
