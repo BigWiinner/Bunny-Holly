@@ -17,11 +17,14 @@ class Bunny extends Phaser.Scene {
         this.shootTimer = 0;
         this.myScore = 0;
         this.gameOver = false;
+        this.win = false;
         this.my.sprite.propeller = [];
         this.direction = -1;
         this.propellerSpeed = 5;
         this.damageTimer = 120;
         this.loop = true;
+        this.flyGone = false;
+        this.flyGone2 = false;
     }
 
     // Use preload to load art and sound assets before the scene starts running.
@@ -123,14 +126,31 @@ class Bunny extends Phaser.Scene {
             }
         }
         this.points = [
-            20, 20,
-            210, 750,
-            400, 20
+            50, 53,
+            283,220,
+            517,53,
+            750,220,
+            517,53,
+            283,220,
+            50, 53
+        ];
+        this.points2 = [
+            750, 53,
+            517, 220,
+            400, 53,
+            283, 220,
+            50, 53,
+            283, 220,
+            400, 53,
+            517, 220,
+            750, 53
         ];
         this.curve = new Phaser.Curves.Spline(this.points);
         my.sprite.flyGuy = this.add.follower(this.curve, 20, 20, "fly_aggro00").setScale(0.5);
-       // my.sprite.flyGuy = this.add.sprite(game.config.width / 5, 50, "fly_aggro00").setScale(0.5);
         my.sprite.flyGuy.anims.play("flyGuy", true);
+        this.curve2 = new Phaser.Curves.Spline(this.points2);
+        my.sprite.flyGuy2 = this.add.follower(this.curve2, 20, 20, "fly_aggro00").setScale(0.5);
+        my.sprite.flyGuy2.anims.play("flyGuy", true);
 
         this.aKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
         this.leftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
@@ -145,12 +165,6 @@ class Bunny extends Phaser.Scene {
         my.text.score = this.add.bitmapText(580, 0, "blockFont", "Score " + this.myScore);
         my.text.lose = this.add.bitmapText(game.config.width / 2 - 200, game.config.height / 2, "blockFont", "Game over!").setScale(3.0);
         my.text.lose.visible = false;
-
-        //this.points = [ 0, 128, 256, 384, 512, 640 ];
-        //this.distance = 0.5;
-        //this.result = this.math.linearInterpolation(this.points, this.distance);
-
-        
     }
 
     update() {
@@ -168,7 +182,7 @@ class Bunny extends Phaser.Scene {
                     from: 0,
                     to: 1,
                     delay: 0,
-                    duration: 2000,
+                    duration: 5000,
                     //ease: 'Sine.easeInOut',
                     ease: 'Circular.easeIn',
                     repeat: -1,
@@ -176,15 +190,27 @@ class Bunny extends Phaser.Scene {
                     rotateToPath: false, // true for it to rotate
                     rotationOffset: -90
                 });
+                my.sprite.flyGuy2.x = this.curve2.points[0].x;
+                my.sprite.flyGuy2.y = this.curve2.points[0].y; 
+                my.sprite.flyGuy2.startFollow({
+                    from: 0,
+                    to: 1,
+                    delay: 0,
+                    duration: 5000,
+                    //ease: 'Sine.easeInOut',
+                    ease: 'Circular.easeIn',
+                    repeat: -1,
+                    yoyo: true,
+                    rotateToPath: false, // true for it to rotate
+                    rotationOffset: -90
+                });
+                
             }
             for (let propel of my.sprite.propeller) {
                 if (propel.visible && (propel.x < 100 || propel.x > game.config.width - 100)) {
                     this.changeDirection();
                 }
             }
-            //if (my.sprite.flyGuy.x != -100 && this.timer % 20 == 0 && my.sprite.flyGuy.y < game.config.height - (my.sprite.bunny.displayHeight * 2.125)) {
-                //my.sprite.flyGuy.y += 2;
-            //}
             // Prevent movement if the player is holding a left and right
             // input down at the same time
             if ((this.aKey.isDown && this.dKey.isDown) || (this.leftKey.isDown && this.rightKey.isDown) || (this.aKey.isDown && this.rightKey.isDown) || (this.leftKey.isDown && this.dKey.isDown)) {
@@ -298,6 +324,9 @@ class Bunny extends Phaser.Scene {
                         propel.setVisible(false);
                         propel.x = -100;
                         this.propellerSpeed += 2; // May need to adjust?
+                        if (my.sprite.propeller.length == 1) {
+                            this.propellerSpeed += 10;
+                        }
                         // TODO INSERT AUDIO
                     }
                 }
@@ -306,10 +335,27 @@ class Bunny extends Phaser.Scene {
                     this.myScore += 3;
                     this.updateScore();
                     my.sprite.flyGuy.stopFollow();
-                    my.sprite.flyGuy.setVisible(false);
                     my.sprite.flyGuy.x = -100;
+                    my.sprite.flyGuy.y = -100;
+                    this.flyGone = true;
                     // TODO INSERT AUDIO
                 }
+                if (this.collides(my.sprite.flyGuy2, carrot)) {
+                    carrot.y = -100;
+                    this.myScore += 3;  
+                    this.updateScore();
+                    my.sprite.flyGuy2.stopFollow();
+                    my.sprite.flyGuy2.x = -100;
+                    my.sprite.flyGuy2.y = -100;
+                    this.flyGone2 = true;
+                    // TODO INSERT AUDIO
+                }
+            }
+            if (this.flyGone) {
+                my.sprite.flyGuy.x = -100;
+            }
+            if (this.flyGone2) {
+                my.sprite.flyGuy2.x = -100;
             }
 
             // Cleanup shot roboCarrots
@@ -346,6 +392,8 @@ class Bunny extends Phaser.Scene {
             my.text.lose.visible = true;
             my.sprite.flyGuy.stopFollow();
             my.sprite.flyGuy.anims.play("flyGuy", false);
+            my.sprite.flyGuy2.stopFollow();
+            my.sprite.flyGuy2.anims.play("flyGuy", false);
         }
     }
 
