@@ -8,25 +8,10 @@ class Bunny extends Phaser.Scene {
         this.dKey = null;
         this.rightKey = null;
         this.spaceKey = null;
-        
-        this.my.sprite.carrot = [];
-        this.maxCarrot = 5;
-        this.my.sprite.robotCarrot = [];
-        this.maxRobotCarrot = 5;
-        this.my.sprite.spikeBall = [];
-        this.maxSpikeBall = 2;
-        this.timer = 0;
-        this.shootTimer = 0;
+        this.enterKey = null;
+
         this.myScore = 0;
-        this.gameOver = false;
-        this.win = false;
-        this.my.sprite.propeller = [];
-        this.direction = -1;
-        this.propellerSpeed = 5;
-        this.damageTimer = 120;
-        this.loop = true;
-        this.flyGone = false;
-        this.flyGone2 = false;
+        this.begin = false;
     }
 
     // Use preload to load art and sound assets before the scene starts running.
@@ -67,10 +52,27 @@ class Bunny extends Phaser.Scene {
         this.load.bitmapFont("blockFont", "Kenny_Block_Font_0.png", "Kenny_Block_Font.fnt");
 
         // update instruction text
-        document.getElementById('description').innerHTML = '<h2>Bunny.js<br>PUT CONTROLS HERE</h2>'
+        document.getElementById('description').innerHTML = '<h2>Bunny.js<br>press enter to start or continue//use a and d or arrow keys to move//press space to fire</h2>'
     }
 
     create() {
+        this.my.sprite.carrot = [];
+        this.maxCarrot = 5;
+        this.my.sprite.robotCarrot = [];
+        this.maxRobotCarrot = 5;
+        this.my.sprite.spikeBall = [];
+        this.maxSpikeBall = 2;
+        this.timer = 0;
+        this.shootTimer = 0;
+        this.gameOver = false;
+        this.win = false;
+        this.my.sprite.propeller = [];
+        this.direction = -1;
+        this.propellerSpeed = 5;
+        this.damageTimer = 120;
+        this.flyGone = false;
+        this.flyGone2 = false;
+
         let my = this.my;   // create an alias to this.my for readability
 
         my.sprite.background = this.add.sprite(0, 0, "background");
@@ -170,62 +172,71 @@ class Bunny extends Phaser.Scene {
         my.sprite.flyGuy2 = this.add.follower(this.curve2, 20, 20, "fly_aggro00").setScale(0.5);
         my.sprite.flyGuy2.anims.play("flyGuy", true);
         
-        //my.sprite.spikeBall = this.add.sprite(100, 100, "spikeBall01").setScale(0.25);
-        //my.sprite.spikeBall.anims.play("spikeBall", true);
-
         this.aKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
         this.leftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
         this.dKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
         this.rightKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
 
         this.playerSpeed = 2;
         this.carrotSpeed = 8;
         this.roboCarrotSpeed = 5;
         this.spikeBallSpeed = 8;
 
+        my.text.fireControls = this.add.bitmapText(game.config.width / 2 - 190, game.config.height / 2 + 200, "blockFont", "space to fire").setScale(2.0);
+        my.text.moveControls = this.add.bitmapText(game.config.width / 2 - 395, game.config.height / 2 + 100, "blockFont", "arrow keys or a and d to move").setScale(2.0);
+        my.text.controls = this.add.bitmapText(game.config.width / 2 - 275, game.config.height / 2, "blockFont", "Press enter to start").setScale(2.0);
         my.text.score = this.add.bitmapText(580, 0, "blockFont", "Score " + this.myScore);
-        my.text.lose = this.add.bitmapText(game.config.width / 2 - 200, game.config.height / 2, "blockFont", "Game over!").setScale(3.0);
+        my.text.lose = this.add.bitmapText(game.config.width / 2 - 250, game.config.height / 2, "blockFont", "Game over!").setScale(3.0);
         my.text.lose.visible = false;
+        my.text.win = this.add.bitmapText(game.config.width / 2 - 200, game.config.height / 2, "blockFont", "You win!").setScale(3.0);
+        my.text.win.visible = false;
+        my.text.totalScore = this.add.bitmapText(my.text.win.x - 100, my.text.win.y + my.text.win.displayHeight, "blockFont", "Your score: " + this.myScore).setScale(3.0);
+        my.text.totalScore.visible = false;
+        my.text.toContinue = this.add.bitmapText(my.text.win.x + 20, my.text.win.y + my.text.win.displayHeight + 100, "blockFont", "Press enter to continue");
+        my.text.toContinue.visible = false;
+
+        my.sprite.flyGuy.x = this.curve.points[0].x;
+        my.sprite.flyGuy.y = this.curve.points[0].y; 
+        my.sprite.flyGuy.startFollow({
+            from: 0,  
+            to: 1,
+            delay: 0,
+            duration: 5000,
+            ease: 'Circular.easeIn',
+            repeat: -1,
+            yoyo: false,
+            rotateToPath: false,
+            rotationOffset: -90 
+        });
+        my.sprite.flyGuy2.x = this.curve2.points[0].x;
+        my.sprite.flyGuy2.y = this.curve2.points[0].y; 
+        my.sprite.flyGuy2.startFollow({
+            from: 0,
+            to: 1,
+            delay: 0,
+            duration: 5000,
+            ease: 'Circular.easeIn',
+            repeat: -1,
+            yoyo: true,
+            rotateToPath: false,
+            rotationOffset: -90
+        });
     }
 
     update() {
         let my = this.my; // create an alias to this.my for readability
-        if (!(this.gameOver || this.win)) {
+        if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+            this.begin = true;
+        }
+        if (!(this.gameOver || this.win) && this.begin) {
+            my.text.controls.setVisible(false);
+            my.text.moveControls.setVisible(false);
+            my.text.fireControls.setVisible(false);
             this.timer++;
             this.shootTimer++;
             this.damageTimer++;
-            if (this.loop){
-                //this.curve.addPoint({x: 300, y: 300});
-                this.loop = false;
-                my.sprite.flyGuy.x = this.curve.points[0].x;
-                my.sprite.flyGuy.y = this.curve.points[0].y; 
-                my.sprite.flyGuy.startFollow({
-                    from: 0,
-                    to: 1,
-                    delay: 0,
-                    duration: 5000,
-                    ease: 'Circular.easeIn',
-                    repeat: -1,
-                    yoyo: false,
-                    rotateToPath: false,
-                    rotationOffset: -90
-                });
-                my.sprite.flyGuy2.x = this.curve2.points[0].x;
-                my.sprite.flyGuy2.y = this.curve2.points[0].y; 
-                my.sprite.flyGuy2.startFollow({
-                    from: 0,
-                    to: 1,
-                    delay: 0,
-                    duration: 5000,
-                    ease: 'Circular.easeIn',
-                    repeat: -1,
-                    yoyo: true,
-                    rotateToPath: false,
-                    rotationOffset: -90
-                });
-                
-            }
             for (let propel of my.sprite.propeller) {
                 if (propel.visible && (propel.x < 100 || propel.x > game.config.width - 100)) {
                     this.changeDirection();
@@ -366,7 +377,6 @@ class Bunny extends Phaser.Scene {
                         if (my.sprite.propeller.length == 1) {
                             this.propellerSpeed += 10;
                         }
-                        // TODO INSERT AUDIO
                     }
                 }
                 if (this.collides(my.sprite.flyGuy, carrot)) {
@@ -377,7 +387,6 @@ class Bunny extends Phaser.Scene {
                     my.sprite.flyGuy.x = -100;
                     my.sprite.flyGuy.y = -100;
                     this.flyGone = true;
-                    // TODO INSERT AUDIO
                 }
                 if (this.collides(my.sprite.flyGuy2, carrot)) {
                     carrot.y = -100;
@@ -387,7 +396,6 @@ class Bunny extends Phaser.Scene {
                     my.sprite.flyGuy2.x = -100;
                     my.sprite.flyGuy2.y = -100;
                     this.flyGone2 = true;
-                    // TODO INSERT AUDIO
                 }
             }
             if (this.flyGone) {
@@ -448,6 +456,9 @@ class Bunny extends Phaser.Scene {
         }
         else if (this.gameOver) {
             my.text.lose.visible = true;
+            my.text.totalScore.setVisible(true);
+            my.text.toContinue.setVisible(true);
+            my.text.score.setVisible(false);
             my.sprite.flyGuy.stopFollow();
             my.sprite.flyGuy.anims.play("flyGuy", false);
             my.sprite.flyGuy2.stopFollow();
@@ -459,9 +470,20 @@ class Bunny extends Phaser.Scene {
             for (let spike of my.sprite.spikeBall) {
                 spike.setVisible(false);
             }
+            for (let carrot of my.sprite.carrot) {
+                carrot.setVisible(false);
+            }
+            if (this.enterKey.isDown) {
+                this.myScore = 0;
+                this.gameOver = false;
+                this.scene.restart();
+            }
         }
-        else {
-            // add a "You win!" text followed by scene change
+        else if (this.win) {
+            my.text.win.setVisible(true);
+            my.text.totalScore.setVisible(true);
+            my.text.toContinue.setVisible(true);
+            my.text.score.setVisible(false);
             my.sprite.flyGuy.stopFollow();
             my.sprite.flyGuy.anims.play("flyGuy", false);
             my.sprite.flyGuy.setVisible(false);
@@ -474,6 +496,13 @@ class Bunny extends Phaser.Scene {
             }
             for (let spike of my.sprite.spikeBall) {
                 spike.setVisible(false);
+            }
+            for (let carrot of my.sprite.carrot) {
+                carrot.setVisible(false);
+            }
+            if (this.enterKey.isDown) {
+                this.win = false;
+                this.scene.restart(this.myScore);
             }
         }
         if (this.flyGone && this.flyGone2 && my.sprite.propeller.length === 0) {
@@ -494,6 +523,7 @@ class Bunny extends Phaser.Scene {
         // by Professor Jim Whitehead ejw@ucsc.edu
         let my = this.my;
         my.text.score.setText("Score " + this.myScore);
+        my.text.totalScore.setText("Your Score: " + this.myScore);
     }
 
     changeDirection() {
